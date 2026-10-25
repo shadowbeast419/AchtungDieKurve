@@ -5,19 +5,30 @@ namespace AchtungDieKurve;
 
 public enum PlayerKind { Off, Human, Ai }
 
-public sealed class Player(int id, string name, Color color, KeyboardKey left, KeyboardKey right, string keyHint)
+public sealed class Player(int id, string name, Color color)
 {
     public int Id { get; } = id;
     public string Name { get; } = name;
     public Color Color { get; } = color;
-    public KeyboardKey LeftKey { get; } = left;
-    public KeyboardKey RightKey { get; } = right;
-    public string KeyHint { get; } = keyHint;
-    public bool HasKeys => LeftKey != KeyboardKey.Null;
+
+    /// <summary>The six colours of the original game.</summary>
+    public static Player[] CreateAll() =>
+    [
+        new(0, "Fred",     new Color(235, 50, 50, 255)),
+        new(1, "Greenlee", new Color(60, 200, 60, 255)),
+        new(2, "Bluebell", new Color(60, 140, 255, 255)),
+        new(3, "Pinkney",  new Color(255, 110, 200, 255)),
+        new(4, "Willem",   new Color(255, 150, 40, 255)),
+        new(5, "Greydon",  new Color(175, 175, 175, 255)),
+    ];
 
     public PlayerKind Kind;
     /// <summary>Position among the human players (0-based); the N-th controller goes to the N-th human.</summary>
     public int HumanIndex = -1;
+    /// <summary>Key set (see <see cref="Input.KeySets"/>) used by this human on its PC, or -1.</summary>
+    public int KeySet = -1;
+    /// <summary>Network games: id of the PC that controls this human (-1 = local / AI).</summary>
+    public int OwnerClient = -1;
     public AiBrain? Brain;
     public bool Active => Kind != PlayerKind.Off;
 

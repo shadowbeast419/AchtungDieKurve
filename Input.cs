@@ -54,11 +54,20 @@ public static class Input
         return Le16(bus) + Le16(vendor) + Le16(product) + Le16(version);
     }
 
-    /// <summary>Raylib device index of the controller for this player, or -1.</summary>
-    private static int PadFor(Player p) =>
-        p.Kind == PlayerKind.Human && p.HumanIndex >= 0 && p.HumanIndex < Pads.Count ? Pads[p.HumanIndex] : -1;
+    /// <summary>Steering keys of the (up to) three humans sharing one keyboard.</summary>
+    public static readonly (KeyboardKey Left, KeyboardKey Right, string Hint)[] KeySets =
+    [
+        (KeyboardKey.One, KeyboardKey.Q, "1 / Q"),
+        (KeyboardKey.M, KeyboardKey.Comma, "M / ,"),
+        (KeyboardKey.Left, KeyboardKey.Right, "Left / Right"),
+    ];
 
-    public static bool HasPad(Player p) => PadFor(p) >= 0;
+    public static string KeyHint(int keySet) => keySet >= 0 && keySet < KeySets.Length ? KeySets[keySet].Hint : "";
+
+    /// <summary>Raylib device index of the N-th controller, or -1.</summary>
+    private static int PadAt(int padIndex) => padIndex >= 0 && padIndex < Pads.Count ? Pads[padIndex] : -1;
+
+    public static bool HasPad(int padIndex) => PadAt(padIndex) >= 0;
 
     /// <summary>Refreshes the controller list; call once per frame. Logs (dis)connects.</summary>
     public static void UpdatePads()
@@ -136,12 +145,17 @@ public static class Input
     }
 
     /// <summary>-1 = left, +1 = right, 0 = straight.</summary>
-    public static float Steering(Player p)
+    public static float Steering(int keySet, int padIndex)
     {
-        var left = IsKeyDown(p.LeftKey);
-        var right = IsKeyDown(p.RightKey);
+        var left = false;
+        var right = false;
+        if (keySet >= 0 && keySet < KeySets.Length)
+        {
+            left = IsKeyDown(KeySets[keySet].Left);
+            right = IsKeyDown(KeySets[keySet].Right);
+        }
 
-        var pad = PadFor(p);
+        var pad = PadAt(padIndex);
         if (pad >= 0)
         {
             var stick = GetGamepadAxisMovement(pad, GamepadAxis.LeftX);
@@ -176,6 +190,29 @@ public static class Input
     /// <summary>Toggle fullscreen: F11 or pad X.</summary>
     public static bool FullscreenPressed() =>
         IsKeyPressed(KeyboardKey.F11) || AnyPadPressed(GamepadButton.RightFaceLeft);
+
+    /// <summary>Edits a single-line text field: typed characters, Backspace, Ctrl+V.</summary>
+    public static string TextInput(string text, int maxLength, Func<char, bool> allowed)
+    {
+        for (var c = GetCharPressed(); c != 0; c = GetCharPressed())
+            if (text.Length < maxLength && allowed((char)c)) text += (char)c;
+
+        if ((IsKeyPressed(KeyboardKey.Backspace) || IsKeyPressedRepeat(KeyboardKey.Backspace)) && text.Length > 0)
+            text = text[..^1];
+
+        if ((IsKeyDown(KeyboardKey.LeftControl) || IsKeyDown(KeyboardKey.RightControl)) && IsKeyPressed(KeyboardKey.V))
+        {
+            var paste = new string((GetClipboardText_() ?? "").Trim().Where(allowed).ToArray());
+            text = (text + paste)[..Math.Min(maxLength, text.Length + paste.Length)];
+        }
+        return text;
+    }
+
+    /// <summary>Discards characters typed while no text field had focus.</summary>
+    public static void FlushTyped()
+    {
+        while (GetCharPressed() != 0) { }
+    }
 
     private static bool AnyPadPressed(GamepadButton button) =>
         Pads.Any(pad => IsGamepadButtonPressed(pad, button));

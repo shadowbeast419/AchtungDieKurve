@@ -15,6 +15,15 @@ public sealed class Settings
     public AiLevel AiLevel { get; set; } = AiLevel.Normal;
     public bool PowerUps { get; set; } = true;
 
+    // Network play
+    public const int DefaultPort = 7777;
+    public const int MaxLocalPlayers = 3;
+    public string PlayerName { get; set; } = Environment.MachineName;
+    public string LastServer { get; set; } = "localhost";
+    public int Port { get; set; } = DefaultPort;
+    /// <summary>How many people play on this PC in a network game.</summary>
+    public int LocalPlayers { get; set; } = 1;
+
     private static readonly JsonSerializerOptions Json = new()
     {
         WriteIndented = true,
@@ -33,6 +42,10 @@ public sealed class Settings
                 if (s.Slots.Length != SlotCount) s.Slots = new Settings().Slots;
                 for (var i = HumanSlots; i < SlotCount; i++)
                     if (s.Slots[i] == PlayerKind.Human) s.Slots[i] = PlayerKind.Ai;
+                s.LocalPlayers = Math.Clamp(s.LocalPlayers, 1, MaxLocalPlayers);
+                if (s.Port is < 1 or > 65535) s.Port = DefaultPort;
+                s.PlayerName = string.IsNullOrWhiteSpace(s.PlayerName) ? Environment.MachineName : s.PlayerName.Trim();
+                s.LastServer ??= "localhost";
                 return s;
             }
         }

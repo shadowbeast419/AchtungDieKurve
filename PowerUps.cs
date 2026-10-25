@@ -188,6 +188,13 @@ public sealed class PowerUpSpawner
         }
     }
 
+    /// <summary>Network clients: replace the boxes with the server's.</summary>
+    public void SetBoxes(IEnumerable<PowerUpBox> boxes)
+    {
+        _boxes.Clear();
+        _boxes.AddRange(boxes);
+    }
+
     public bool TryPickup(Player p)
     {
         var idx = _boxes.FindIndex(b => Vector2.Distance(b.Position, p.Position) < PickupRadius);
